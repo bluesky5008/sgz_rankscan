@@ -11,8 +11,8 @@
 ## 요약
 
 - 목적: 승인된 기준선 v1을 TDD 작업 단위로 번역하고 진행 상태를 추적한다.
-- 현재 결론 또는 상태: TASK-01~04 완료(2026-09-28 22:58), TASK-05 착수 대기. 작업 9개 — 골격·플랫폼 이식(01) → 화면 이동(02)·행 기하(03)·순위 글리프(04)·저장(05) → 행 파서(06) → 순회·CLI(07) → 실기 검증(08) → 리뷰·통합·보고(09).
-- 다음 행동: TASK-05 착수(작업 기록의 재개 지점 참조).
+- 현재 결론 또는 상태: TASK-01~06 완료(2026-09-28 23:55), TASK-07 착수 대기. 작업 9개 — 골격·플랫폼 이식(01) → 화면 이동(02)·행 기하(03)·순위 글리프(04)·저장(05) → 행 파서(06) → 순회·CLI(07) → 실기 검증(08) → 리뷰·통합·보고(09).
+- 다음 행동: TASK-07 착수(작업 기록의 재개 지점 참조).
 
 ## 문서 연결
 
@@ -43,17 +43,15 @@
 <!-- generated — wf-tree 렌더링 생성물. 수정은 아래 작업 목록에서 하고 재생성한다. 활성 경로 중심 뷰. -->
 
 ```text
-[작업] 20260928-contrib-ranking-capture 공헌 랭킹 캡처·추출 ..... in-progress (4/9)
+[작업] 20260928-contrib-ranking-capture 공헌 랭킹 캡처·추출 ..... in-progress (6/9)
 ├─ [✓] 설계 단계 (조사·P-01·P-02·요구사항·설계·ADR-001·002) (7/7) ... 2026-09-28 22:05
 ├─ [✓★] 승인: 기준선 v1 ............................................ 2026-09-28 22:05
 ├─ [✓] 구현: TASK-01 골격·플랫폼 계층 이식·probe (1/1) ............ 2026-09-28 21:59
 ├─ [✓] 구현: TASK-02 화면 판정·이동 (nav) (1/1)               depends: TASK-01  2026-09-28 22:08
 ├─ [✓] 구현: TASK-03 행 검출·이동량 측정·순위 이어붙임 (1/1)   depends: TASK-01  2026-09-28 22:37
 ├─ [✓] 구현: TASK-04 순위 숫자 글리프 판독 (1/1)               depends: TASK-01  2026-09-28 22:58
-├─ [ ] 구현: TASK-05 DataStore·CsvExport                      depends: TASK-01
-│      └─ [ ] 테스트: 멱등·라벨·CSV 열 (선행)
-├─ [ ] 구현: TASK-06 IdentityMatcher·OcrReader·RowParser      depends: TASK-05
-│      └─ [ ] 테스트: AC-02 오프라인 (선행)
+├─ [✓] 구현: TASK-05 DataStore·CsvExport (1/1)                depends: TASK-01  2026-09-28 23:30
+├─ [✓] 구현: TASK-06 IdentityMatcher·OcrReader·RowParser (1/1) depends: TASK-05  2026-09-28 23:55
 ├─ [ ] 구현: TASK-07 ListScroller.walk·Controller·CLI         depends: TASK-02, 03, 04, 06
 │      └─ [ ] 테스트: 가짜 판정기 시나리오·종료 코드 (선행)
 ├─ [ ] 검증: TASK-08 실기 캘리브레이션·AC-01/03/04/05/06/07/08  depends: TASK-07
@@ -68,10 +66,8 @@ flowchart TD
     ROOT --> T2["구현: TASK-02 화면 이동 (1/1)"]:::done
     ROOT --> T3["구현: TASK-03 행 기하·순위 이어붙임 (1/1)"]:::done
     ROOT --> T4["구현: TASK-04 순위 글리프 (1/1)"]:::done
-    ROOT --> T5["구현: TASK-05 DataStore·CSV"]:::todo
-    T5 --> T5T["테스트: 멱등·CSV (선행)"]:::todo
-    ROOT --> T6["구현: TASK-06 Identity·OCR·RowParser"]:::todo
-    T6 --> T6T["테스트: AC-02 오프라인 (선행)"]:::todo
+    ROOT --> T5["구현: TASK-05 DataStore·CSV (1/1)"]:::done
+    ROOT --> T6["구현: TASK-06 Identity·OCR·RowParser (1/1)"]:::done
     ROOT --> T7["구현: TASK-07 walk·Controller·CLI"]:::todo
     T7 --> T7T["테스트: 시나리오·종료 코드 (선행)"]:::todo
     ROOT --> T8["검증: TASK-08 실기 AC"]:::todo
@@ -151,11 +147,12 @@ flowchart TD
 
 ### TASK-05: DataStore·CsvExport
 
-- 상태: pending
+- 상태: completed
+- 완료: 2026-09-28 23:30
 - 상위: 없음
 - 목표: 설계 스키마의 SQLite 원장과 CSV 내보내기.
 - 관련 요구사항과 설계: FR-06, FR-07, FR-10, NFR-03, AC-06 / DES-09
-- 변경 대상: `src/rankscan/store/datastore.py`(sgz_statiz 골격 이식, 스키마 교체: `runs`·`identities`·`identity_templates`·`rank_rows`), `src/rankscan/store/csv_export.py`, `tests/test_datastore.py`, `tests/test_csv_export.py`
+- 변경 대상: `src/rankscan/store/datastore.py`(sgz_statiz 골격 이식, 스키마 교체: `runs`·`identities`·`identity_templates`·`rank_rows`), `src/rankscan/store/csv_export.py`, `tests/test_datastore.py`, `tests/test_csv_export.py`. 실제 차이: `src/rankscan/store/__init__.py` 신설, 설계 내부 계약 `RankRow`는 `datastore.py`에 배치, 덱 관련 API·`add_template`은 이식 제외하고 `upsert_row`·`ranks_of`·`export_rows` 추가, `export_csv(store, out_dir, run_id)`는 run당 파일 1개 — [작업 기록](./work/20260928-contrib-ranking-capture/work-log.md#설계와-달라진-점) 참조
 - 의존성: TASK-01
 - 위험: 없음(순수 로컬).
 - 검증 방법: 선행 테스트 — run 생성·마감(status/note), `upsert_row` 같은 `(run, rank)` 재저장 시 1건, 다른 run은 별도 보존, identities pending→confirm 조회 반영, CSV 열 순서와 `#id(제안)` 표기, UTF-8 BOM.
@@ -163,11 +160,12 @@ flowchart TD
 
 ### TASK-06: IdentityMatcher·OcrReader·RowParser
 
-- 상태: pending
+- 상태: completed
+- 완료: 2026-09-28 23:55
 - 상위: 없음
 - 목표: 행 크롭에서 세력명·지역·동맹 ID와 순위 판독값을 담은 `RankRow`를 만든다([ADR-001](./work/20260928-contrib-ranking-capture/ADR-001-recognition-strategy.md)).
 - 관련 요구사항과 설계: FR-05, FR-07, AC-02, AC-05 / DES-05, DES-06, DES-07
-- 변경 대상: `src/rankscan/vision/identity.py`(이식), `src/rankscan/vision/ocr.py`(이식·축소: `suggest_label`만, 4배 이진화 우선), `src/rankscan/vision/row_parser.py`, `tests/test_row_parser.py`
+- 변경 대상: `src/rankscan/vision/identity.py`(이식), `src/rankscan/vision/ocr.py`(이식·축소: `suggest_label`만, 4배 이진화 우선), `src/rankscan/vision/row_parser.py`, `tests/test_row_parser.py`. 실제 차이: 임계 3종(`NAME/REGION/ALLIANCE_NCC_THRESHOLD` 0.80/0.80/0.92)을 `src/rankscan/nav/ui_ranking.py`에 추가, IdentityMatcher는 라벨 제안 콜러블을 생성자로 받아 신규 등록 시에만 호출, 빈 셀은 NULL·미등록, 테스트는 `tests/test_identity.py`·`test_ocr.py`를 더한 3파일, 검증 방법의 "동맹 ID {1,2,3,5} 동일"은 실측(같은 텍스트의 중복 ID)으로 "라벨 확정 후 이름 동일"로 정정 — [작업 기록](./work/20260928-contrib-ranking-capture/work-log.md#설계와-달라진-점) 참조
 - 의존성: TASK-05(DataStore), TASK-04(순위 판독)
 - 위험: 텍스트 스트립 임계 0.80이 행 y 배경 차이로 흔들림 → 픽스처 교차 측정으로 보정(경미).
 - 검증 방법: 선행 테스트 — AC-02: `img/ranking_1.png` 6행 파싱 → 지역 ID 6행 동일, 동맹 ID {1,2,3,5} 동일·4·6 상이, 세력명 ID 6개 상이, `parse_status == ok`, 재파싱 시 신규 등록 0건(멱등). OCR 제안은 winocr 존재 시에만(`skipUnless`).
@@ -231,7 +229,7 @@ flowchart TD
 - 다음 단계 또는 워크플로우: wf-implement 구현(TASK-01부터).
 - 시작 조건: 충족(기준선 v1 승인).
 - 입력 문서와 기준선: [요구사항 v1](./requirements.md), [설계 v1](./design.md), [ADR-001](./work/20260928-contrib-ranking-capture/ADR-001-recognition-strategy.md), [ADR-002](./work/20260928-contrib-ranking-capture/ADR-002-rank-assignment.md)
-- 완료된 항목: 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58).
-- 미완료 항목: TASK-05~09.
+- 완료된 항목: 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58), TASK-05(2026-09-28 23:30), TASK-06(2026-09-28 23:55).
+- 미완료 항목: TASK-07~09.
 - 차단 요인: 없음.
 - 다음 행동: [작업 기록 재개 지점](./work/20260928-contrib-ranking-capture/work-log.md#재개-지점) 참조.
