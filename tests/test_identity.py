@@ -104,6 +104,18 @@ class IdentityMatcherTest(unittest.TestCase):
         self.assertTrue(new)
         self.assertNotIn(sam, jam)
 
+    def test_shared_suffix_names_are_distinct_but_same_name_rematches(self):
+        """2026-09-30 실기 run_1(TASK-08): 3위 '자룡의사생활' vs 9위 '꽁구의사생활'(접미 4자 공유)
+        NCC 0.811 — 임계 0.80에서 같은 ID로 오식별(작업 기록 TASK-08 발견). 같은 이름의 인접
+        프레임 재매칭(0.972 이상)은 유지되어야 한다."""
+        png = lambda n: np.asarray(Image.open(IMG / f"{n}.png").convert("RGB"))
+        m = self._matcher("user", ui.NAME_NCC_THRESHOLD)
+        id3, _, _ = m.resolve(png("p02_name_r03_f0"))
+        id9, score9, new9 = m.resolve(png("p02_name_r09_f1"))
+        self.assertTrue(new9, f"접미 공유 다른 이름이 같은 ID {id3}로 오식별 (점수 {score9:.3f})")
+        id9b, score9b, new9b = m.resolve(png("p02_name_r09_f2"))
+        self.assertEqual((id9b, new9b), (id9, False))
+        self.assertGreaterEqual(score9b, 0.95)
 
 if __name__ == "__main__":
     unittest.main()

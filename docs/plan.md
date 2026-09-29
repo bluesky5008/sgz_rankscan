@@ -5,14 +5,14 @@
 > 상태: `in-progress`
 > 기준선: `v1` (승인일 2026-09-28)
 > 작성일: 2026-09-28
-> 최종 갱신: 2026-09-28
+> 최종 갱신: 2026-09-30
 > 관련 문서: [REQ-sgz-rankscan: 요구사항](./requirements.md), [DESIGN-sgz-rankscan: 설계](./design.md), [WORK-20260928-contrib-ranking-capture: 작업 기록](./work/20260928-contrib-ranking-capture/work-log.md)
 
 ## 요약
 
 - 목적: 승인된 기준선 v1을 TDD 작업 단위로 번역하고 진행 상태를 추적한다.
-- 현재 결론 또는 상태: TASK-01~06 완료(2026-09-28 23:55), TASK-07 착수 대기. 작업 9개 — 골격·플랫폼 이식(01) → 화면 이동(02)·행 기하(03)·순위 글리프(04)·저장(05) → 행 파서(06) → 순회·CLI(07) → 실기 검증(08) → 리뷰·통합·보고(09).
-- 다음 행동: TASK-07 착수(작업 기록의 재개 지점 참조).
+- 현재 결론 또는 상태: TASK-01~07 완료(2026-09-30 00:30), TASK-08 진행 중(2026-09-30 00:40 착수 — 실기는 승격 러너 기동 대기). 작업 9개 — 골격·플랫폼 이식(01) → 화면 이동(02)·행 기하(03)·순위 글리프(04)·저장(05) → 행 파서(06) → 순회·CLI(07) → 실기 검증(08) → 리뷰·통합·보고(09).
+- 다음 행동: TASK-08 실기 검증 계속(작업 기록의 재개 지점 참조).
 
 ## 문서 연결
 
@@ -35,7 +35,7 @@
 - 목표: `rankscan` CLI로 공헌 랭킹 1~600위를 순회·캡처·추출·저장하고 AC-01~08을 증거와 함께 충족한다.
 - 범위: [요구사항 §범위 포함](./requirements.md#포함) 전체.
 - 범위 밖: [요구사항 §범위 제외](./requirements.md#제외). 커밋·push는 사용자 요청 시에만.
-- 가정: 기준선 가정 A-01~A-08. 실기 검증은 사용자가 허용한 현재 클라이언트(창 0x206be)와 승격 러너를 사용한다.
+- 가정: 기준선 가정 A-01~A-08. 실기 검증은 사용자가 허용한 현재 클라이언트(2026-09-30 창 0x305ee — 재기동으로 바뀜, 2026-09-28은 0x206be)와 승격 러너를 사용한다.
 - 위험: RISK-01~09(기준선). 계획 고유 — 실기 캘리브레이션(TASK-08)이 상수 초기값과 크게 어긋나면 TASK-02·03 픽스처 기대값 갱신 필요(경미한 변경으로 처리).
 
 ## 계획 트리
@@ -43,7 +43,7 @@
 <!-- generated — wf-tree 렌더링 생성물. 수정은 아래 작업 목록에서 하고 재생성한다. 활성 경로 중심 뷰. -->
 
 ```text
-[작업] 20260928-contrib-ranking-capture 공헌 랭킹 캡처·추출 ..... in-progress (6/9)
+[작업] 20260928-contrib-ranking-capture 공헌 랭킹 캡처·추출 ..... in-progress (7/9)
 ├─ [✓] 설계 단계 (조사·P-01·P-02·요구사항·설계·ADR-001·002) (7/7) ... 2026-09-28 22:05
 ├─ [✓★] 승인: 기준선 v1 ............................................ 2026-09-28 22:05
 ├─ [✓] 구현: TASK-01 골격·플랫폼 계층 이식·probe (1/1) ............ 2026-09-28 21:59
@@ -52,9 +52,8 @@
 ├─ [✓] 구현: TASK-04 순위 숫자 글리프 판독 (1/1)               depends: TASK-01  2026-09-28 22:58
 ├─ [✓] 구현: TASK-05 DataStore·CsvExport (1/1)                depends: TASK-01  2026-09-28 23:30
 ├─ [✓] 구현: TASK-06 IdentityMatcher·OcrReader·RowParser (1/1) depends: TASK-05  2026-09-28 23:55
-├─ [ ] 구현: TASK-07 ListScroller.walk·Controller·CLI         depends: TASK-02, 03, 04, 06
-│      └─ [ ] 테스트: 가짜 판정기 시나리오·종료 코드 (선행)
-├─ [ ] 검증: TASK-08 실기 캘리브레이션·AC-01/03/04/05/06/07/08  depends: TASK-07
+├─ [✓] 구현: TASK-07 ListScroller.walk·Controller·CLI (1/1)   depends: TASK-02, 03, 04, 06  2026-09-30 00:30
+├─ [▶] 검증: TASK-08 실기 캘리브레이션·AC-01/03/04/05/06/07/08  depends: TASK-07
 └─ [ ] 리뷰·통합: TASK-09 자체 리뷰·README·완료 보고           depends: TASK-08
 ```
 
@@ -68,9 +67,8 @@ flowchart TD
     ROOT --> T4["구현: TASK-04 순위 글리프 (1/1)"]:::done
     ROOT --> T5["구현: TASK-05 DataStore·CSV (1/1)"]:::done
     ROOT --> T6["구현: TASK-06 Identity·OCR·RowParser (1/1)"]:::done
-    ROOT --> T7["구현: TASK-07 walk·Controller·CLI"]:::todo
-    T7 --> T7T["테스트: 시나리오·종료 코드 (선행)"]:::todo
-    ROOT --> T8["검증: TASK-08 실기 AC"]:::todo
+    ROOT --> T7["구현: TASK-07 walk·Controller·CLI (1/1)"]:::done
+    ROOT --> T8["검증: TASK-08 실기 AC"]:::active
     ROOT --> T9["리뷰·통합: TASK-09"]:::todo
     T1 -. depends .-> T2
     T1 -. depends .-> T3
@@ -173,11 +171,12 @@ flowchart TD
 
 ### TASK-07: ListScroller.walk·Controller·CLI
 
-- 상태: pending
+- 상태: completed
+- 완료: 2026-09-30 00:30
 - 상위: 없음
 - 목표: 순회 루프(시작 조건·처리·종료·겹침 상실 복구·순위 충돌 처리)와 `scan|export|label` 명령, 실행 요약, 종료 코드.
 - 관련 요구사항과 설계: FR-02, FR-03, FR-04, FR-08, FR-09, NFR-01, AC-03, AC-04, AC-08 / DES-04 상세 1·4·5·7, DES-10
-- 변경 대상: `src/rankscan/nav/list_scroller.py`(`ListScroller.walk`, `WalkSummary`), `src/rankscan/controller.py`(`run_scan`, `label_pending`, `summarize_run`), `src/rankscan/cli.py`(scan·export·label 추가), `tests/test_list_scroller.py`, `tests/test_controller.py`(확장)
+- 변경 대상: `src/rankscan/nav/list_scroller.py`(`ListScroller.walk`, `WalkSummary`), `src/rankscan/controller.py`(`run_scan`, `label_pending`, `summarize_run`), `src/rankscan/cli.py`(scan·export·label 추가), `tests/test_list_scroller.py`, `tests/test_controller.py`(확장). 실제 차이: `src/rankscan/vision/row_parser.py`(`read_rank` 추가), `src/rankscan/store/datastore.py`(`latest_run_id`·`status_counts`·`pending_identities(namespace)`), `tests/test_datastore.py`(확장)을 더함; 검증 (b)의 `same_image`는 anchor 이동량 0으로 실현(포함 관계, AC-08 의미 불변), 중단은 `WalkAborted` 예외로 `run_scan`이 `aborted`·exit 2 — [작업 기록](./work/20260928-contrib-ranking-capture/work-log.md#설계와-달라진-점) 참조
 - 의존성: TASK-02, TASK-03, TASK-04, TASK-06
 - 위험: 가짜 판정기 시나리오가 실기 타이밍을 대변하지 못함 → TASK-08에서 보정.
 - 검증 방법: 선행 테스트 — 픽스처 프레임 시퀀스를 재생하는 가짜 판정기·입력으로 (a) `--max-rank 6` 첫 화면 종료, (b) 끝 화면 `same_image` 종료(`stop_reason=end`), (c) 겹침 상실 → 되감기 휠(+) 기록 → 재측정 성공, (d) 순위 충돌 → 재취득 → 재발 시 `aborted`·exit 2, (e) 시작 시 1위 아님 → 되감기, (f) 셀 실패 행은 `partial` 저장 후 계속. `run_scan` 종료 코드 0/2, 요약 문자열 내용.
@@ -185,11 +184,11 @@ flowchart TD
 
 ### TASK-08: 실기 캘리브레이션·인수 조건 검증
 
-- 상태: pending
+- 상태: in-progress
 - 상위: 없음
 - 목표: 실기에서 상수(`SCROLL_NOTCHES`, 임계, 마커)를 보정하고 AC-01·03·04·05·06·07·08을 판정한다.
 - 관련 요구사항과 설계: AC-01, AC-03, AC-04, AC-05, AC-06, AC-07, AC-08, NFR-01·02·05 / DES-02 보정
-- 변경 대상: `src/rankscan/nav/ui_ranking.py`(보정값), 작업 기록 검증 절, `output/`(증거, 커밋 제외)
+- 변경 대상: `src/rankscan/nav/ui_ranking.py`(보정값), 작업 기록 검증 절, `output/`(증거, 커밋 제외). 실제 추가: `tests/test_identity.py`(실기 오식별 재현 테스트)·`img/p02_name_*.png`·`img/README.md`([작업 기록 TASK-08](./work/20260928-contrib-ranking-capture/work-log.md#수행-기록) 참조)
 - 의존성: TASK-07
 - 위험: 실행 중 랭킹 갱신·클라이언트 상태 변화 → 재실행. AC-07(창 2개)은 두 번째 클라이언트 실행이 불가하면 미수행으로 기록.
 - 검증 방법: 승격 러너로 (1) `probe` 마커 점수 확인, (2) `scan --max-rank 12` → AC-08·AC-01, (3) `scan`(600) → AC-03(순위 집합 1~600 결측·중복 0, 크롭 600장), 요약 → AC-04, (4) `label` 일부 확정 후 `export` → AC-05·AC-06, (5) 가능하면 AC-07.
@@ -226,10 +225,10 @@ flowchart TD
 
 ## 인계
 
-- 다음 단계 또는 워크플로우: wf-implement 구현(TASK-01부터).
+- 다음 단계 또는 워크플로우: wf-implement 구현·검증(TASK-08 실기부터).
 - 시작 조건: 충족(기준선 v1 승인).
 - 입력 문서와 기준선: [요구사항 v1](./requirements.md), [설계 v1](./design.md), [ADR-001](./work/20260928-contrib-ranking-capture/ADR-001-recognition-strategy.md), [ADR-002](./work/20260928-contrib-ranking-capture/ADR-002-rank-assignment.md)
-- 완료된 항목: 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58), TASK-05(2026-09-28 23:30), TASK-06(2026-09-28 23:55).
-- 미완료 항목: TASK-07~09.
+- 완료된 항목: 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58), TASK-05(2026-09-28 23:30), TASK-06(2026-09-28 23:55), TASK-07(2026-09-30 00:30).
+- 미완료 항목: TASK-08~09.
 - 차단 요인: 없음.
 - 다음 행동: [작업 기록 재개 지점](./work/20260928-contrib-ranking-capture/work-log.md#재개-지점) 참조.

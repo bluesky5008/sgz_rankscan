@@ -1,18 +1,18 @@
 # WORK-20260928-contrib-ranking-capture: 공헌 랭킹 캡처·추출 작업 기록
 
-> 문서 유형: `work-log`
+> 문서 유형: `work-log, verification`
 > 작업 ID: `20260928-contrib-ranking-capture`
 > 상태: `in-progress`
 > 기준선: `v1` (승인일 2026-09-28)
 > 작성일: 2026-09-28
-> 최종 갱신: 2026-09-28
+> 최종 갱신: 2026-09-30
 > 관련 문서: [PLAN-sgz-rankscan: 구현 계획](../../plan.md), [DESIGN-sgz-rankscan: 설계](../../design.md), [REQ-sgz-rankscan: 요구사항](../../requirements.md)
 
 ## 요약
 
 - 목적: 기준선 v1 구현의 수행 내역·결정·검증·재개 지점을 기록한다.
-- 현재 결론 또는 상태: TASK-01~06 완료(2026-09-28 23:55 — 단위 테스트 53건 통과, 실기 probe 스냅샷 확보, 마커 4종 교차 NCC 분리, 행 검출·이동량·순위 배정을 픽스처 8장으로 검증, 순위 셀 33개 정확 판독, SQLite 원장·CSV 오프라인 검증, AC-02 오프라인 충족). 세션 인계 지점(컨텍스트 임계 초과), TASK-07 미착수.
-- 다음 행동: TASK-07 착수 — 아래 재개 지점 참조.
+- 현재 결론 또는 상태: TASK-01~07 완료(2026-09-30 00:30 — 단위 테스트 80건 통과. 오프라인 부품 전부 갖춤: 순회 루프·컨트롤러·CLI 4개 명령. 픽스처 재생 가짜 게임으로 시작 되감기·max_rank 종료·목록 끝 종료·겹침 상실 복구·순위 충돌 재취득/중단·셀 실패 격리·화면 이탈 귀환을 검증, AC-04·AC-08 오프라인 충족). TASK-08 진행 중(2026-09-30 00:40 착수): 승격 러너 기동(pid 28168) → 실기 `scan --max-rank 12` 성공(AC-01·AC-08 성공, 1~12위 12건, 이동량 207~209px로 `SCROLL_NOTCHES` 12 유지) → 실기 오식별 1건('자룡의사생활'↔'꽁구의사생활' 0.811) 발견 → 재현 테스트 후 `NAME_NCC_THRESHOLD` 0.80→0.85(81건 OK). 600 순회·label·export 미수행.
+- 다음 행동: 러너로 `scan`(600) 실행 → AC-03·04 판정 → `label`·`export`(AC-05·06) → AC-07 — 아래 재개 지점 (3) 참조.
 
 ## 문서 연결
 
@@ -22,6 +22,7 @@
 | input | baseline | [DESIGN-sgz-rankscan: 설계](../../design.md) | DES-01~10 | 승인 기준선 v1 |
 | input | baseline | [REQ-sgz-rankscan: 요구사항](../../requirements.md) | FR-01~10, AC-01~08 | 승인 기준선 v1 |
 | input | decision | [ADR-001: 인식 전략](./ADR-001-recognition-strategy.md), [ADR-002: 순위 확정 전략](./ADR-002-rank-assignment.md) | ADR-001, ADR-002 | approved |
+| output | verification | [REQ-sgz-rankscan: 요구사항](../../requirements.md#인수-조건) | AC-01~08 | [인수 조건별 결과](#인수-조건별-결과) (verification 유형 합침) |
 
 ## 기준선과 현재 계획
 
@@ -30,9 +31,9 @@
 
 ## 현재 상태
 
-- 진행 중인 작업: 없음(TASK-07 착수 전, 세션 인계)
-- 마지막 완료 작업: TASK-06(2026-09-28 23:55)
-- 차단 요인: 없음
+- 진행 중인 작업: TASK-08 실기 캘리브레이션·AC 검증(2026-09-30 00:40 착수; 12위 순회·캘리브레이션·임계 보정 완료, 600 순회부터 남음)
+- 마지막 완료 작업: TASK-07(2026-09-30 00:30)
+- 차단 요인: 없음(승격 러너 pid 28168 기동 중 — 세션이 바뀌어 종료됐으면 재기동 필요, 재개 지점 (2))
 
 ## 수행 기록
 
@@ -159,7 +160,91 @@
 - 실행한 검증: `.venv\Scripts\python.exe -m unittest discover -s tests` — Red `Ran 45 tests, FAILED (errors=3)`(`rankscan.vision.{identity,ocr,row_parser}` 없음) → 1차 `Ran 53 tests, FAILED (failures=2)` → 2차 `FAILED (failures=1)` → Green `Ran 53 tests, OK`(2.2s, 신규 11건, OCR 2건은 winocr로 실제 실행). 실기 인식·라벨은 TASK-08.
 - 결과: TASK-06 completed(2026-09-28 23:55). 완료 조건(테스트 통과) 충족. 남은 위험: (1) 동맹은 같은 텍스트의 중복 ID가 배경 변형마다 생겨 라벨 작업량이 늘고 중복 ID 사이의 배정이 실행마다 바뀔 수 있다(라벨은 동일) — TASK-08에서 pending 동맹 수를 확인하고 과다하면 부화소 정렬(4배 확대 정밀 매칭)이나 `label`의 ID 병합을 DCR 후보로 올린다; (2) 잠룡/삼룡류 유사 텍스트는 임계 0.92와 여유 0.012 — TASK-08 pending 검토; (3) 지역 음성 미측정.
 
+### 2026-09-30 — TASK-07 ListScroller.walk·Controller·CLI
+
+- 수행 내용: 재개(인계 절 → 계획 TASK-07 `in-progress`·트리 갱신) → 조사: 이식 원천(sgz_statiz `list_walker.walk`·`controller`·`cli`·테스트 가짜 판정기 패턴)과 rankscan 부품 계약 확인, 픽스처 체인 실측(아래 발견 사항) → TDD: `tests/test_list_scroller.py`(13건 — 가짜 게임 `FakeGame`이 캡처·입력을 겸하며 휠·귀환 클릭마다 다음 픽스처로 점프, 재취득 전 일시 프레임은 grab 3회짜리 transient로 재현)와 `tests/test_controller.py` 확장(RunScan 3·LabelFlow 4·Summary 2·Cli 3), `tests/test_datastore.py` 확장(3건)을 먼저 작성 → Red(`Ran 52 tests, FAILED (errors=5)`: `ListScroller`·`label_pending` import 실패 2, DataStore 메서드 부재 3) → `nav/list_scroller.py`에 `WalkAborted`·`WalkSummary`·`ListScroller`(DES-04 상세 1~7), `vision/row_parser.py`에 `read_rank`, `store/datastore.py`에 `latest_run_id`·`status_counts`·`pending_identities(namespace)`, `controller.py`에 `run_scan`·`label_pending`·`summarize_run`(sgz_statiz 이식), `cli.py`에 scan·export·label 추가 → 1차 실행 실패 1건(시나리오 (e): 시작 되감기 후 `_start`가 갱신한 프레임을 `_walk`에 돌려주지 않아 옛 프레임(w1)으로 패스가 돌아 2~6위만 저장 — 실제 결함) → `_start`가 `(anchor, client)`를 반환하도록 수정 → Green(`Ran 80 tests, OK`). Refactor: 테스트의 미닫힘 `Image.open` 정리(ResourceWarning 0).
+- 변경 파일: `src/rankscan/nav/list_scroller.py`, `src/rankscan/controller.py`, `src/rankscan/cli.py`, `src/rankscan/vision/row_parser.py`, `src/rankscan/store/datastore.py`, `tests/test_list_scroller.py`(신규), `tests/test_controller.py`, `tests/test_datastore.py`, `docs/plan.md`(TASK-07 상태·완료·실제 차이·트리·인계), 본 문서.
+- 발견 사항:
+  - 사실: 픽스처 체인 실측 — `p01_contrib_top`(1~6위) 6위 띠(top 559)를 `p01_w11`(5~9위)에서 top 318·이동량 241·NCC 0.910으로 재발견(이어붙임 5~9위 정확, 순위 셀 판독 5~9 일치); `p01_b11_r132`·`p01_end_r595_600`에서는 NCC 0.278·0.358로 None(겹침 상실); `p01_w11`→`p01_w11`은 이동량 0. w11의 7위 순위 셀에 8위 셀을 덮으면 판독 `8`(충돌 합성), `p01_w1` 첫 완전 가시 행 판독 `2`(시작 조건 위반 픽스처). 마커 `MARKER_RANKING`·`MARKER_CONTRIB_TAB`은 픽스처 8장 전부 1.000.
+  - 사실: 픽스처 체인은 물리적으로 연속이 아니지만(휠마다 점프) 앵커 띠 재발견·순위 배정·판독 교차 검증은 프레임 두 장으로 성립하므로 순회 루프의 분기 전부를 오프라인으로 덮을 수 있었다. 실기 타이밍(안정화·노치당 이동량)은 대변하지 못한다(계획 TASK-07 위험 그대로).
+  - 사실: TDD 사이클이 실제 결함 1건(시작 되감기 후 옛 프레임 처리)을 구현 직후 잡았다.
+  - 사실: 게임 클라이언트·승격 러너는 이 작업에서 사용하지 않았다.
+- 결정과 이유:
+  - 결정: 순회 중단은 `WalkAborted` 예외로 올리고(정상 종료만 `WalkSummary` 반환) `run_scan`의 예외 경계가 내비게이션·판정기·캡처 예외와 같은 경로로 `aborted`·exit 2·`runs.note`(`예외명: 메시지`)를 기록한다(sgz_statiz 구조 동일). 중단 전 `summary.stop_reason='aborted'`와 전체 프레임 `error_NNNN.png`를 남기고 저장분은 유지한다. 기각: 반환값에 aborted를 실어 나르기 — 예외 종류마다 분기가 이중화된다.
+  - 결정: 목록 끝 판정은 스크롤 후 anchor 이동량 0(`measure_shift == 0`) — ADR-002 6의 문구이며 설계 DES-04 5의 `same_image`를 포함하는 조건(동일 프레임이면 NCC 1.0·이동량 0). 호버 등 미세 픽셀 변화로 `same_image`가 거짓이어도 목록이 안 움직였으면 종료해 되감기 무한 반복을 막는다.
+  - 결정: 겹침 상실 복구의 재측정은 `shift < SHIFT_MAX`면 유효(0·음수 허용) — 되감기가 직전 위치를 지나쳐도 anchor 기하는 유효하고, 설계의 `(0, SHIFT_MAX)`를 고집하면 정상 복구를 실패로 오판해 중단한다. 전진 스크롤 직후는 설계대로 `(0, SHIFT_MAX)`.
+  - 결정: 화면 이탈 판정에 `MARKER_RANKING`과 `MARKER_CONTRIB_TAB`을 함께 본다 — 탭이 바뀌면 다른 랭킹의 행이 같은 순위 체계로 파싱되어 데이터가 오염되므로(무결성). 귀환 1회 후 재판정, 실패면 중단(설계 실패 흐름 표).
+  - 결정: 순위 배정이 1 미만이면 순위 충돌로 취급(anchor 오류 감지, 판독 실패 행이라도 잘못된 순위로 저장되지 않게). 충돌 시 그 패스를 즉시 멈추고 프레임 재취득 후 같은 anchor로 재패스(이미 저장한 행은 `done`으로 건너뜀), 같은 위치에서 연속 2회면 중단.
+  - 결정: 시작 조건 판독은 `RowParser.read_rank(frame, top)`(순위 셀 1개, 식별자 등록 부작용 없음). `parse`도 같은 메서드를 쓴다.
+  - 결정: 크롭·단계 프레임 경로는 `captures_dir/run_<id>/rank_NNN.png`·`frames/step_NNNN.png`의 문자열(CLI `--out` 기준 상대 경로)을 그대로 기입, 단계 번호는 취득한 프레임마다 증가(재취득·복구 프레임도 증거로 저장).
+  - 결정: `summarize_run`은 순위 범위(`min~max위`)·처리/저장/실패·parse_status별 사유·결측 순위(최대 20개 표시)·비고(note)·pending 수를 출력(FR-08). 정상 종료 run의 note에는 복구된 충돌 횟수만 남긴다.
+  - 결정: CLI — `scan --out`은 캡처 루트(`<out>/captures/run_<id>/`, 기본 `output`), `export --run` 생략 시 최신 run·run이 없으면 exit 1, `label --namespace`로 pending 필터, `main`에서 `logging.basicConfig(INFO)`(설계 관측성: 단계·순위·복구·중단 사유 로그). `RowParser`는 기본 root(프로젝트 루트) 사용(TASK-06 결정 유지).
+- 실행한 검증: `.venv\Scripts\python.exe -m unittest discover -s tests` — Red `Ran 52 tests, FAILED (errors=5)` → 1차 `Ran 80 tests, FAILED (failures=1)`(`test_start_below_rank_one_rewinds_to_top`: `[2, 3, 4, 5, 6] != [1, 2, 3, 4, 5, 6]`) → Green `Ran 80 tests, OK`(7.0s; `-W error::ResourceWarning`에서도 OK). `.venv\Scripts\rankscan.exe --help` → `{scan,probe,export,label}` 4개 노출, exit 0. 시나리오 대응: (a) `test_max_rank_reached_on_first_screen_stops_without_scroll`·`test_rows_beyond_max_rank_are_not_processed`, (b) `test_unmoved_list_after_scroll_ends_walk`, (c) `test_lost_overlap_rewinds_and_remeasures`·`…_twice_aborts_keeping_saved_rows`, (d) `test_rank_conflict_reacquires_frame_once`·`…_twice_aborts`, (e) `test_start_below_rank_one_rewinds_to_top`·`…_fails_twice_aborts`, (f) `test_cell_failure_rows_are_saved_and_walk_continues`, 화면 이탈 2건, `RunScanTest` 3건(exit 0/2·note), `SummaryTest`·`LabelFlowTest`·`CliTest`.
+- 결과: TASK-07 completed(2026-09-30 00:30). 완료 조건(테스트 통과, `--help` 4개 명령) 충족. 남은 위험: (1) 실기 타이밍 미검증 — `wait_stable` 안정화, `SCROLL_NOTCHES` 12의 실제 이동량이 `SHIFT_MAX` 364 안인지, 되감기 6노치의 효과(TASK-08 보정); (2) 귀환 복구 뒤 스크롤 위치가 보존되는지 미확인 — 리셋되면 겹침 상실 → 되감기 → 중단(저장분 유지)으로 귀결; (3) 복구가 `max_rank`를 건너뛴 위치로 떨어지면 목록 끝까지 진행 후 결측을 보고한다(실기 관찰 시 보완 후보); (4) 마커가 유지되는 팝업(중앙 다이얼로그 등)은 감지하지 못하고 행 미검출·충돌로 중단된다.
+
+### 2026-09-30 — TASK-08 실기 캘리브레이션·인수 조건 검증 (진행 중)
+
+- 수행 내용: 재개(인계 절 → 계획 TASK-08 `in-progress`·트리 재생성·계획 요약 정정(TASK-07 완료가 요약에 미반영이었음)) → 3.1 재확인: 단위 테스트 `Ran 80 tests, OK`(6.9s), TASK-07 변경분 미커밋 상태 그대로(`git status` 9개 수정·1개 신규) → 재개 지점 (1): `rankscan probe`(승격 불필요) → 창 1개 0x305ee(pid 18072, elevated, client 2544×657) 스냅샷 `output/probe/snap_003921_probe.png` → 마커 4종 NCC(스크래치 `markers.py`, `ScreenJudge.marker_score`): MAIN **0.993**, MENU −0.039, RANKING 0.063, CONTRIB_TAB 0.094 → **메인 화면**(사용자 화면 복귀 불필요, `goto_contrib_tab` 시작 가능) → 재개 지점 (2): 승격 러너 없음(`Get-Process`에 승격 PowerShell 없음, `shell_status.txt` 마지막 `run #15` 2026-09-28 21:39) → 사용자에게 UAC 기동 요청(아래 결정).
+- 변경 파일: `docs/plan.md`(TASK-08 상태·트리·요약·가정 창 ID), 본 문서.
+- 발견 사항:
+  - 사실: 현재 화면 마커 점수는 메인 화면 판정 임계(0.8)와 여유가 크다(자기 0.993, 타 ≤ 0.094) — 설계 DES-02 마커 교차 조건이 실기 프레임(창 재기동 후)에서도 유지됨.
+  - 사실: `rankscan scan --help`가 cp949 콘솔에서 `UnicodeEncodeError`(help 문자열의 `—` U+2014)로 실패한다(`probe --help`는 글자 깨짐만). 승격 러너와 실기 명령은 `PYTHONIOENCODING=utf-8`을 두므로 검증에는 영향 없음. 제품 결함(DES-10 CLI 사용성)으로 TASK-09 자체 리뷰에서 수정 검토(범위 밖 임의 수정 금지 — 별도 항목).
+- 결정과 이유:
+  - 결정: 승격 러너는 sgz_statiz 것이 아니라 rankscan 자체 사본 `tools/agent_shell_admin.bat`(TASK-01 복사, `agent_shell.ps1`은 출처 주석만 다름)을 쓴다 — cwd가 `sgz_rankscan`이 되어 상대 경로로 실행되고, 명령 파일은 `output/agent_shell/cmd_0001.txt`부터 새로 시작하며(`output/`은 커밋 제외) 증거가 이 저장소에 남는다. 인계 메모의 `cmd_0016`은 sgz_statiz 러너 기준이라 적용하지 않는다.
+  - 결정: 러너 기동(`Start-Process … -Verb RunAs`)은 새 세션이므로 메모리 규칙대로 사용자에게 먼저 묻는다(UAC 승인은 사용자만 가능).
+- 실행한 검증: 위 단위 테스트·probe·마커 점수.
+- 결과: 계속(아래 항목).
+
+### 2026-09-30 — TASK-08 (계속) 승격 러너·실기 12위 순회·캘리브레이션·세력명 임계 보정
+
+- 수행 내용: 사용자 지시("bat 파일을 직접 실행시켜")로 `Start-Process tools/agent_shell_admin.bat -Verb RunAs` → 러너 기동(`shell_status.txt`: `start 00:47:44 pid=28168 elevated=True cwd=C:/src/git/sgz_rankscan`) → cmd_0001 `scan --max-rank 12`: 메인→더 보기→랭킹→공헌 탭 이동, 1~12위 12건 저장(ok 12·실패 0), max_rank 종료, exit 0, 5초 → 단계 프레임 3장으로 이동량 실측(스크래치 `shift.py`: 207·209px) → cmd_0002 `probe --wheel 6 --settle 2`·`probe --wheel -12 --settle 2`(−112px·209px) → DB 검사에서 9위 `user_id`가 3위와 같은 5 — 프레임 육안으로 '꽁구의사생활' vs '자룡의사생활'(다른 유저, 접미 4자 공유) → 실기 3프레임 교차 NCC 분포 실측(스크래치 `ncc_dist.py`) → 임계 후보 검사(0.85: `test_identity` 5건 OK, 0.90: 1건 실패) → TDD: 이름 셀 3장을 `img/p02_name_*.png` 픽스처로 저장, `tests/test_identity.py`에 재현 테스트 추가 → Red(0.811로 같은 ID) → `ui_ranking.NAME_NCC_THRESHOLD` 0.85 → Green(`Ran 81 tests, OK`) → 검증 절·캘리브레이션 표 기록.
+- 변경 파일: `src/rankscan/nav/ui_ranking.py`(NAME 임계·근거 주석), `tests/test_identity.py`(재현 테스트 1건), `img/p02_name_r03_f0.png`·`img/p02_name_r09_f1.png`·`img/p02_name_r09_f2.png`(신규 픽스처), `img/README.md`(대장), `docs/plan.md`(TASK-08 변경 대상), 본 문서. 증거(커밋 제외): `output/agent_shell/cmd_0001~0002·res·done`, `output/captures/run_1/`, `output/probe/snap_0050*.png`, `output/rankscan.db`(run 1), `assets/templates/{user,region,alliance}/`(식별자 17건).
+- 발견 사항:
+  - 사실: 12노치 이동량 207~209px(2.92~2.94행)로 설계 추정(200~250px) 안이며 겹침 3행 유지 — `SCROLL_NOTCHES` 보정 불필요. +6 되감기는 −112px.
+  - 사실: 순위 판독 12/12 일치, 행 검출 6행/프레임, 화면 이탈·충돌·겹침 상실 0회, 스크롤당 ≈1s(600위 ≈ 200스크롤 ≈ 4~5분 예상).
+  - 사실: 세력명 오식별 — 접미 4자를 공유하는 다른 이름이 0.811로 임계 0.80을 넘었다. 실기 인접 프레임 양성은 ≥ 0.972, 음성 2위는 0.611. 픽스처 양성 최소 0.829(TASK-06)와 실기 음성 0.811의 간격이 0.018뿐이라 임계만으로는 여유가 작다 — 이름 셀 NCC가 공통 장식 프레임과 공유 접미에 지배되기 때문. 0.85는 픽스처 중복 0을 유지하면서 음성과 0.04 여유. 오식별(다른 유저가 같은 ID, 되돌릴 수 없음)이 중복 등록(라벨 확정으로 병합 가능)보다 무결성에 해로우므로 상향이 안전한 방향.
+  - 사실: 지역·동맹 양성 최소 0.997·0.993, 임계 유지. 동맹 5위 잠룡 매칭 0.925는 임계 0.92와 근접 — 600 순회에서 중복 등록 수를 본다.
+  - 사실: run_1 `identities` 라벨 제안(OCR)은 17건 중 정확한 것이 '사예'·'잠룡'·'맹수' 정도이고 나머지는 한자·기호 오인('曲김부선', '寅도시혜수' 등) — 설계대로 `label`에서 사람이 확정한다(FR-07). 라벨 품질은 AC-05 검증 시 관찰.
+  - 위험: 접미·접두를 길게 공유하는 이름 쌍이 600명 중 더 있을 수 있다(0.811보다 높은 음성). 600 순회 결과에서 `user_id` 중복 행(같은 ID가 두 순위)을 검사해 재검출한다. 임계로 해결되지 않으면 텍스트 마스크 비교 등 DES-06 변경(DCR 대상)으로 반환.
+- 결정과 이유:
+  - 결정: `NAME_NCC_THRESHOLD` 0.80 → 0.85(경미 — DES-06 임계는 캘리브레이션 항목, 계약 불변). 기각: 0.90(픽스처 양성 갈라짐, `test_identity` 실패), 0.82(음성과 여유 0.009).
+  - 결정: run_1 9위 행의 잘못된 `user_id`와 식별자 레지스트리(identity 5 = 자룡의사생활)는 정정·삭제하지 않는다 — run_1은 캘리브레이션 증거이고, 보정 후 600 순회(run_2)에서 '꽁구의사생활'은 새 ID로 등록된다. 최종 데이터는 run_2 이후를 쓴다.
+  - 결정: 재현 픽스처는 셀 크롭(220×30) 3장으로 최소화(창 전체 프레임은 9위 위치에 3위가 없어 두 장 필요, 용량 낭비). `img/README.md`에 예외로 명기.
+- 실행한 검증: `.venv/Scripts/python.exe -m unittest tests.test_identity…test_shared_suffix_names_are_distinct_but_same_name_rematches` → Red `FAILED (failures=1)`(0.811) → 상수 변경 → `-m unittest discover -s tests` → `Ran 81 tests, OK`(6.9s). 실기 검증은 위 검증 절 VER-01·02·08.
+- 결과: 진행 중. 남은 항목: 600 순회(VER-03·04), label·export(VER-05·06), AC-07. 이 시점에서 세션 컨텍스트 임계값 초과로 인계.
+
+## 검증 결과
+
+> 유형 `verification`(합침). 실행 환경: Windows 11, 게임 클라이언트 창 0x305ee(클라이언트 2544×657, 관리자 권한), 승격 러너 pid 28168(`output/agent_shell/`, cwd `sgz_rankscan`), `.venv` Python 3.13.1. 러너 로그 `res_NNNN.log`는 UTF-16이며 한글이 cp949 오해석으로 깨져 있다 — 복원은 줄마다 `encode('cp949').decode('utf-8')`.
+
+### 인수 조건별 결과
+
+| 검증 | 인수 조건 | 방법 | 결과 | 증거 | 비고 |
+|---|---|---|---|---|---|
+| VER-01 | [AC-01](../../requirements.md#인수-조건) | 실기 `scan --max-rank 12`(cmd_0001, 00:48:46): 메인에서 더 보기 → 랭킹 → 공헌 탭 자동 이동 | 성공 | `output/agent_shell/res_0001.log` 00:48:47 "더 보기 메뉴 도달"·"랭킹 화면 도달"·"공헌 랭킹 탭 도달"(3클릭 1.7s); 시작 화면 `output/probe/snap_003921_probe.png`(메인, MARKER_MAIN 0.993, 타 마커 ≤ 0.094) | 이동 후 첫 프레임이 1~6위(`step_0000.png`) |
+| VER-08 | [AC-08](../../requirements.md#인수-조건) | 실기 `scan --max-rank 12` + 단위 (a)(b) | 성공 | run_1: 1~12위 12건 저장, `stop_reason=max_rank`, exit 0(`done_0001.txt`), 단계 프레임 3장 `output/captures/run_1/frames/step_0000~0002.png`, 크롭 `rank_001~012.png`, 13위 이상 미처리(DB `rank_rows` 12행); 단위 `tests/test_list_scroller.py` (a)(b) | 순위 판독 12/12가 배정 순위와 일치 |
+| VER-02 | [AC-02](../../requirements.md#인수-조건) | 단위(TASK-06) + 실기 run_1 교차 확인 | 단위 성공 / 실기 오식별 1건 → 보정 후 단위 성공 | run_1 9위 '꽁구의사생활'이 3위 '자룡의사생활'과 같은 `user_id` 5(NCC 0.811 ≥ 0.80). 실기 3프레임 교차 실측: 세력명 양성 최소 0.972(n=12)·음성 최대 0.811(n=294, 그다음 0.611). 재현 테스트 `test_shared_suffix_names_are_distinct_but_same_name_rematches` Red(0.80: "같은 ID 1로 오식별 (점수 0.811)") → `NAME_NCC_THRESHOLD` 0.85 → Green, 전체 81건 OK. 0.90은 픽스처 양성이 갈라져 `test_identity` 1건 실패 → 기각 | run_1 9위 행은 보정 전 데이터로 남긴다(증거 보존). 실기 재검증은 600 순회(VER-03)에서 |
+| VER-03 | [AC-03](../../requirements.md#인수-조건) | 실기 600 순회 + `ranks_of` 결측·중복 검사 | 미수행 | — | 다음 세션(cmd_0003) |
+| VER-04 | [AC-04](../../requirements.md#인수-조건) | 실기 요약(실패 행 격리) + 단위 (f) | 실기 미수행 | 단위 (f) 성공(TASK-07); run_1 요약 처리 12·저장 12·실패 0 | 600 순회 후 판정 |
+| VER-05 | [AC-05](../../requirements.md#인수-조건) | `label` 후 조회·CSV 반영 | 미수행 | — | run_1 pending 17건 |
+| VER-06 | [AC-06](../../requirements.md#인수-조건) | CSV 단위 + 실기 `export` | 실기 미수행 | 단위 `tests/test_csv_export.py` 성공 | |
+| VER-07 | [AC-07](../../requirements.md#인수-조건) | 단위 `choose_window` + 실기(창 2개) | 실기 미수행 | 단위 `tests/test_controller.py` 성공 | 두 번째 클라이언트 실행 가능 시 |
+
+### 캘리브레이션 실측(DES-02)
+
+| 항목 | 초기값 | 실측 | 판정 |
+|---|---|---|---|
+| `SCROLL_NOTCHES` 12 이동량 | 200~250px 추정 | 207·209px(step_0000→0001→0002, anchor NCC 재발견), probe −12: 209px → 2.92~2.94행 | 유지 — `SHIFT_MAX` 364 안, 겹침 3행 |
+| 되감기 +6 노치 | 미측정 | −112px(1.58행, probe `snap_005009`→`snap_005012_wheel_+6`) | 복구 시 순이동 ≈ +97px, 유효 |
+| 행 상단 검출 | 6행/프레임 | 3프레임 모두 6행, 피치 71~72px | 유지 |
+| `wait_stable` | 6s 상한 | 이동 3클릭 1.7s, 12위까지 총 5s(스크롤당 ≈1s) | 유지 |
+| 마커 4종 | 임계 0.8 | 메인: MAIN 0.993, 타 ≤ 0.094; 순회 중 랭킹·공헌 탭 이탈 0회 | 유지 |
+| `NAME_NCC_THRESHOLD` | 0.80 | 양성 ≥ 0.972(인접 프레임)·픽스처 ≥ 0.829, 음성 0.811 | **0.85로 상향**(VER-02) |
+| `REGION_NCC_THRESHOLD`·`ALLIANCE_NCC_THRESHOLD` | 0.80·0.92 | 양성 최소 0.997·0.993; 동맹 매칭 점수 최저 0.925(5위 잠룡) | 유지(동맹은 임계와 여유 0.005 — 600 순회에서 중복 등록 수 관찰) |
+
 ## 설계와 달라진 점
+
+- DES-06 `NAME_NCC_THRESHOLD` 0.80 → 0.85: 2026-09-30 실기 음성 0.811 오식별(TASK-08). 캘리브레이션, 계약 불변, 경미. `SCROLL_NOTCHES` 12는 실측으로 유지.
 
 - DES-02 `MARKER_MENU`: 설계는 sgz_statiz `menu_alliance.png` 재사용이었으나 P-01 메뉴에서 0.47(메뉴 배치 변경)이라 `menu_ranking.png`를 신규 수확했다. 마커 값은 DES-02가 구현 시 보정을 허용한 캘리브레이션 항목 — 경미한 변경, 설계 문서 수정 불필요(TASK-09에서 설계 DES-02 표의 근거 열 갱신 여부 검토).
 - DES-02 `MARKER_RANKING` 상자: 설계 추정 y 28~56 → 실측 (18, 11, 68, 43). 캘리브레이션.
@@ -178,25 +263,35 @@
 - DES-07 `suggest_label`: 4배 이진화 1순위 + 빈 결과면 4배 확대 폴백(설계 "4배 이진화를 1순위" 준수). 경미.
 - 계획 TASK-06 검증 방법: "동맹 ID {1,2,3,5} 동일"은 같은 텍스트의 중복 ID(실측)로 "라벨 확정 후 이름 동일"로 정정. AC-02 원문 기준과 일치하므로 인수 조건 의미 불변. 테스트 파일 1 → 3(`test_identity.py`·`test_ocr.py` 추가), 임계 상수는 `ui_ranking.py`에 추가. 경미(계획 세부).
 
+- DES-04 5 종료 판정: 설계 `same_image` → 구현은 anchor 이동량 0(`measure_shift == 0`, ADR-002 6 문구). 동일 프레임은 이동량 0이므로 포함 관계이며 미세 픽셀 변화에 더 강건. 경미(내부 세부, TASK-07).
+- DES-04 6 복구 유효 범위: 되감기 후 재측정은 `shift < SHIFT_MAX`(0·음수 허용). 전진 스크롤 직후는 설계대로 `(0, SHIFT_MAX)`. 경미(내부 세부).
+- 설계 실패 흐름 표 "랭킹 화면 이탈" 감지: `MARKER_RANKING`만 → `MARKER_RANKING` + `MARKER_CONTRIB_TAB`(탭 전환 데이터 오염 방지, 더 엄격). 대응(귀환 1회·실패 시 exit 2) 불변. 경미.
+- DES-04 4 순위 충돌: 배정 순위 < 1도 충돌로 취급. 경미(무결성 강화).
+- 내부 계약 `ListScroller.walk() -> WalkSummary`: 정상 종료는 반환, 중단은 `WalkAborted` 예외(`summary.stop_reason='aborted'` 후). 종료 코드·저장분 유지·`error_<step>.png` 등 외부 동작은 설계대로. 경미.
+- DES-05 `RowParser`에 `read_rank(frame, top)` 공개 메서드 추가(시작 조건 판정용). 경미.
+- DES-09 `DataStore`에 `latest_run_id`·`status_counts`·`pending_identities(namespace=None)` 추가. 스키마·계약 불변. 경미.
+- DES-10 CLI: `scan --out`은 캡처 루트(`<out>/captures/run_<id>/`), `export` run 없음 → exit 1(실행 불가), `label --namespace` 필터, `main`에서 INFO 로깅 설정. 계약 문자열(4개 명령·옵션명) 불변. 경미.
+- 계획 TASK-07 변경 대상에 `row_parser.py`·`datastore.py`·`tests/test_datastore.py` 추가; 검증 방법 (b)의 `same_image`는 이동량 0으로 실현(AC-08 의미 불변). 경미(계획 세부).
+
 ## 미완료 항목
 
-- TASK-07~09(계획 참조). TASK-07은 02·03·04·06(모두 완료)에 의존.
+- TASK-08~09(계획 참조). TASK-08은 실기(게임 클라이언트·승격 러너)가 필요하다.
 
 ## 재개 지점
 
-- 다음 작업: TASK-07 ListScroller.walk·Controller·CLI — 오프라인(가짜 판정기·입력)으로 완료 가능([계획 TASK-07](../../plan.md#task-07-listscrollerwalkcontrollercli), [설계 DES-04 상세 1~7](../../design.md#des-04-상세)·[DES-10](../../design.md#컴포넌트와-책임)·[CLI 계약·파일 산출물](../../design.md#데이터와-인터페이스)·[정상·실패·복구 흐름](../../design.md#정상실패복구-흐름), [ADR-002](./ADR-002-rank-assignment.md)).
-- 먼저 확인할 사항: (1) `src/rankscan/nav/list_scroller.py`에 `class ListScroller`·`WalkSummary`가 없는지(없으면 미착수 — 현재는 순수 함수 `detect_row_tops`·`anchor_band`·`measure_shift`·`assign_ranks`만 있음), `tests/test_list_scroller.py`가 있으면 Red 진행 중, (2) 이식 원천 `C:\src\git\sgz_statiz\src\deckscan\controller.py`(`run_scan(store, navigator, make_walker) -> (exit_code, summary)`, `label_pending(store, ask, ...)`, `summarize_run(store, run_id)`)와 `cli.py`, sgz_statiz `tests/test_controller.py`·`test_list_walker.py`(가짜 판정기 패턴), (3) 계획 검증 방법: 픽스처 프레임 시퀀스를 재생하는 가짜 캡처·입력으로 (a) `--max-rank 6` 첫 화면 종료, (b) 끝 화면 `same_image` 종료(`stop_reason=end`), (c) 겹침 상실(`measure_shift` None: `p01_b10_r121`→`p01_b11_r132`) → 되감기 휠(+) → 재측정 성공, (d) 순위 충돌(`rank_read`가 배정 순위와 불일치 — 판독 실패 `''`/`?`는 제외) → 재취득 1회 → 재발 시 `aborted`·exit 2, (e) 시작 시 1위 아님 → 되감기, (f) 셀 실패 행은 `partial` 저장 후 계속. `run_scan` 종료 코드 0/2, 요약 문자열. `rankscan --help`에 scan·probe·export·label 4개 노출.
-- 필요한 명령 또는 파일: 테스트 `.venv\Scripts\python.exe -m unittest discover -s tests`(현재 53건 OK, OCR 2건은 winocr 실행). walk가 조립할 부품 — `RankingNavigator.goto_contrib_tab() -> ndarray`(`nav/ranking.py`, 캡처·판정기 주입 방식은 `tests/test_ranking_nav.py` 참조), 캡처는 `grab_fresh()`(`win/capture.py`), 안정 대기 `wait_stable()`과 클라이언트 프레임 변환 `crop_client(frame, (0, 0, 2544, 657))`은 `nav/navigator.py`의 판정기 클래스 메서드(`frame_client_offset` 기반, TASK-03 결정), `detect_row_tops(client)`·`anchor_band(client, top)`·`measure_shift(band, band_top, client) -> int | None`(범위 판정 `0 < shift < SHIFT_MAX`는 호출자)·`assign_ranks((rank, top), tops) -> [(rank, top)]`, `RowParser(store, root, suggest=None).parse(client, top, rank) -> RankRow`(`crop_path`·`frame_path`는 walk가 `output/captures/run_<id>/rank_NNN.png`·`frames/step_NNNN.png` 저장 후 기입 — DES-04 4·FR-04), `DataStore.create_run(max_rank)`·`upsert_row`·`ranks_of`·`finish_run(status, processed, saved, failed, note)`·`pending_identities`·`templates_of`·`confirm_label`, `export_csv(store, out_dir, run_id) -> Path`(`--run` 생략 시 최신 run — `DataStore`에 `latest_run_id` 추가 필요). 순위 충돌 판정: `rank_read`가 `''`이거나 `?`를 포함하면 검증 생략, 그 외 `rank_read != str(rank)`면 `rank_conflict`(TASK-04 결정). 휠·클릭은 `win/input.py`(승격 러너 필요 — 실기는 TASK-08).
+- 다음 작업: TASK-08 실기 캘리브레이션·인수 조건 검증([계획 TASK-08](../../plan.md#task-08-실기-캘리브레이션인수-조건-검증), [설계 DES-02 상세](../../design.md#des-02-상세)·[검증 전략](../../design.md#검증-전략), [요구사항 AC-01~08](../../requirements.md#인수-조건)).
+- 먼저 확인할 사항: (1) 게임 창·화면 — 2026-09-30 00:39 확인: 창 0x305ee **메인 화면**(MARKER_MAIN 0.993). 세션이 바뀌었으면 `rankscan probe`(승격 불필요)로 재확인하고 마커 점수는 스크래치 스크립트(`ScreenJudge.marker_score`로 4종 계산)로 본다. 메인·메뉴·랭킹 화면이 아니면 사용자 복귀 요청(A-01); (2) 승격 러너 — rankscan 자체 사본 `tools\agent_shell_admin.bat`를 `Start-Process -Verb RunAs`로 기동(사용자 UAC 승인, 새 세션은 먼저 묻는다). 기동 확인은 `output\agent_shell\shell_status.txt`의 `start … elevated=True cwd=C:\src\git\sgz_rankscan` 줄, 명령은 `output\agent_shell\cmd_0001.txt`부터(`done_NNNN.txt`가 있는 번호는 건너뜀; 첫 줄 `$env:PYTHONIOENCODING='utf-8'`, 완료 대기는 `done_NNNN.txt` 폴링); (3) 남은 순서(2026-09-30 00:58 기준 — probe·이동량 실측·`scan --max-rank 12`·세력명 임계 보정은 완료, 검증 절 참조): 게임이 공헌 탭 목록(7~12위 근처)에 있으므로 `scan`은 시작 조건에서 위로 되감기(+120노치)한다 → `scan`(600; 러너 `cmd_0003.txt`: `$env:PYTHONIOENCODING='utf-8'` / `Set-Location C:/src/git/sgz_rankscan` / `& ./.venv/Scripts/rankscan.exe scan`, 완료 대기 ≈5분, `done_0003.txt` 폴링) → AC-03: DB `rank_rows` run_2 순위 집합 1~600 결측·중복 0, 크롭 600장; AC-04: 요약(처리·저장·실패·결측)과 `parse_status` 분포; 추가로 `user_id`가 두 순위에 중복된 행(오식별 재검출)과 '꽁구의사생활'이 새 ID인지 확인 → `label`(일부 확정, 대화형 — 러너 밖 일반 콘솔에서 `.venv/Scripts/rankscan.exe label --namespace alliance` 등)·`export`(AC-05·AC-06, `output/export/ranks_<run>_<날짜>.csv`) → AC-07(두 번째 클라이언트 가능 시, 아니면 미수행 기록). 러너 로그 복원은 스크래치 `decode_res.py`(줄마다 `encode('cp949').decode('utf-8')`).
+- 필요한 명령 또는 파일: 테스트 `.venv\Scripts\python.exe -m unittest discover -s tests`(현재 80건 OK). 실기 실행은 승격 러너 명령 안에서 `Set-Location C:\src\git\sgz_rankscan` 후 `.venv\Scripts\rankscan.exe scan --hwnd <hwnd> --max-rank 12`(창이 하나면 `--hwnd` 생략 가능, 비대화형 다중 후보는 거부). 산출물: `output/rankscan.db`, `output/captures/run_<id>/`(rank_NNN.png·frames/·error_NNNN.png), `output/export/ranks_<run>_<날짜>.csv`, `assets/templates/<user|region|alliance>/`(레지스트리, 커밋 제외). 실행 요약(`summarize_run`)의 결측·비고·pending 수를 검증 절 증거로 옮긴다. 상수 보정 시 `tests/test_list_geometry.py`·`test_rank_digits.py` 기대값 재확인.
 
 ## 인계
 
-- 다음 단계 또는 워크플로우: wf-implement 계속 — 재개 절차: 본 문서의 재개 지점 → 계획의 해당 TASK → TDD 사이클.
-- 시작 조건: 충족(기준선 v1).
+- 다음 단계 또는 워크플로우: wf-implement 계속 — 재개 절차: 본 문서의 재개 지점 → 계획 TASK-08 → 실기 검증(승격 러너) → 검증 결과를 본 문서 검증 절로 기록.
+- 시작 조건: 충족(기준선 v1). 실기 조건: 게임 창 0x305ee 공헌 탭 목록 화면(00:50), 승격 러너 pid 28168 기동 중(유휴 300분 후 자동 종료 — 종료됐으면 재개 지점 (2)로 재기동). 이 인계는 세션 컨텍스트 임계값 초과에 따른 경계 인계다(2026-09-30 00:58).
 - 입력 문서와 기준선: [계획](../../plan.md), [설계](../../design.md), [요구사항](../../requirements.md), [ADR-001](./ADR-001-recognition-strategy.md), [ADR-002](./ADR-002-rank-assignment.md).
-- 완료된 항목: wf-design 전체, 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58), TASK-05(2026-09-28 23:30), TASK-06(2026-09-28 23:55).
-- 미완료 항목: TASK-07~09.
-- 차단 요인: 없음.
-- 다음 행동: TASK-07 착수 — 계획 TASK-07을 `in-progress`로 바꾸고(트리 재생성), `tests/test_list_scroller.py`(가짜 캡처·입력으로 위 재개 지점의 (a)~(f) 시나리오)와 `tests/test_controller.py` 확장(`run_scan` 종료 코드·요약, `label_pending`)을 먼저 작성해 Red를 확인한 뒤, `nav/list_scroller.py`에 `ListScroller.walk`·`WalkSummary`(DES-04 상세 1~7: 시작 조건 → 행 검출 → 순위 이어붙임 → 미처리 행 파싱·크롭 저장·upsert → 종료 판정 → 스크롤·이동량 측정·겹침 상실 복구 → anchor 갱신), `controller.py`에 `run_scan`·`label_pending`·`summarize_run`(sgz_statiz 이식), `cli.py`에 `scan|export|label` 추가로 Green. 캡처·입력·판정기는 생성자 주입으로 두어 가짜로 대체 가능하게 한다(sgz_statiz list_walker 패턴).
+- 완료된 항목: wf-design 전체, 계획 수립, TASK-01(2026-09-28 21:59), TASK-02(2026-09-28 22:08), TASK-03(2026-09-28 22:37), TASK-04(2026-09-28 22:58), TASK-05(2026-09-28 23:30), TASK-06(2026-09-28 23:55), TASK-07(2026-09-30 00:30).
+- 미완료 항목: TASK-08(진행 중 — VER-01·02·08 완료, VER-03~07 실기 미수행), TASK-09.
+- 차단 요인: 없음(러너가 종료됐으면 재기동에 사용자 UAC 필요).
+- 다음 행동: 러너 기동 상태를 `output/agent_shell/shell_status.txt`·`Get-Process`로 확인(없으면 재개 지점 (2)) → 재개 지점 (3)의 순서로 `scan`(600) → AC-03·04 판정 → `label`·`export`(AC-05·06) → AC-07 → 각 결과·증거를 검증 절 표(VER-03~07)에 채우고 캘리브레이션 표의 동맹 중복 관찰을 갱신 → TASK-08 완료 판정(계획 상태·완료 시각·트리) → TASK-09.
 - 재개 프롬프트: 작업 20260928-contrib-ranking-capture 재개 — docs/work/20260928-contrib-ranking-capture/work-log.md의 인계 절을 읽고 "다음 행동"부터 진행하라.
-- 실기 환경 메모: 클라이언트 창 0x206be(pid 21456, 클라이언트 2544×657, 관리자 권한). 현재 화면은 **장수 상세(여포)** — 랭킹도 메인도 아니므로 TASK-08 전 사용자 복귀 필요. 승격 러너 pid 28052(2026-09-28 21:25 기동, cwd sgz_statiz, 유휴 300분 후 자동 종료 — 마지막 명령 21:39이므로 2026-09-29 02:39경 종료 예상; 이 세션에서는 사용하지 않음). 명령 투입 프로토콜은 `sgz_statiz/tools/agent_shell.ps1` 머리 주석 참조(다음 번호 `cmd_0016.txt`; rankscan 실행은 명령 안에서 `Set-Location C:\src\git\sgz_rankscan` 후 `.venv\Scripts\rankscan.exe`).
-- 저장소: 원격 https://github.com/bluesky5008/sgz_rankscan — 2026-09-28 사용자 요청으로 최초 커밋·push(TASK-01·02 완료 시점). 이후 커밋·push도 사용자 요청 시에만 수행한다. TASK-03·04 변경분은 2026-09-28 사용자 요청으로 커밋 `53344df`·push 완료, 메모 갱신 `d66d759`(main = origin/main). TASK-05·06 변경분은 2026-09-29 사용자 요청으로 커밋 `b7d504a`·push 완료(이 메모 갱신만 후속 커밋, main = origin/main). 조사 스크립트(`measure_identity*.py`·`simulate_registry.py`)는 세션 스크래치 디렉터리에만 있고 저장소에 남기지 않았다(결과 수치는 위 발견 사항이 정본).
+- 실기 환경 메모(2026-09-30 00:39 확인): 게임 클라이언트 창 **0x305ee(pid 18072)**, 클라이언트 2544×657, 관리자 권한, 창 1개. 현재 화면 **메인**(probe 스냅샷 `output/probe/snap_003921_probe.png`, MARKER_MAIN 0.993). 승격 러너는 없음(sgz_statiz 러너 pid 28052 종료, exit 기록 없음). 이후 러너는 rankscan 자체 사본(`tools/agent_shell_admin.bat` → `output/agent_shell/`, `cmd_0001.txt`부터)을 쓴다(TASK-08 결정). 프로토콜은 `tools/agent_shell.ps1` 머리 주석(cmd_NNNN.txt → res_NNNN.log + done_NNNN.txt; res 로그는 UTF-16 — PowerShell `>` 리디렉션) 참조.
+- 저장소: 원격 https://github.com/bluesky5008/sgz_rankscan — 커밋·push는 사용자 요청 시에만. TASK-01~06까지는 커밋·push 완료(main = origin/main, 마지막 `d6692c5`). **TASK-07 변경분(소스 5개·테스트 3개·plan.md·본 문서)과 TASK-08 변경분(`ui_ranking.py`·`tests/test_identity.py`·`img/p02_name_*.png`·`img/README.md`·plan.md·본 문서)은 미커밋 상태**로 작업 사본에만 있다. 조사 스크립트(`explore.py`·`markers.py`·문서 갱신 스크립트)는 세션 스크래치 디렉터리에만 있고 저장소에 남기지 않았다(결과 수치는 위 발견 사항이 정본).
