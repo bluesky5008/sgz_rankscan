@@ -1,4 +1,7 @@
-"""TASK-05 선행 테스트 — DataStore (FR-06·FR-07, NFR-03, AC-05 오프라인 부분 / DES-09 스키마)."""
+"""TASK-05 선행 테스트 — DataStore (FR-06·FR-07, NFR-03, AC-05 오프라인 부분 / DES-09 스키마).
+
+TASK-07(2026-09-30)에서 latest_run_id·status_counts·pending 네임스페이스 필터를 추가했다.
+"""
 
 import tempfile
 import unittest
@@ -49,6 +52,13 @@ class RunTest(StoreTestCase):
         self.assertEqual(row["note"], "rank_conflict at 7")
         self.assertIsNotNone(row["finished_at"])
 
+    def test_latest_run_id(self):
+        """export --run 생략 시 대상(DES-10): run이 없으면 None, 있으면 최신 run."""
+        self.assertIsNone(self.store.latest_run_id())
+        self.store.create_run()
+        run2 = self.store.create_run()
+        self.assertEqual(self.store.latest_run_id(), run2)
+
 
 class RankRowTest(StoreTestCase):
     def test_upsert_same_rank_in_run_keeps_one_row_with_latest_values(self):
@@ -86,6 +96,14 @@ class RankRowTest(StoreTestCase):
         self.assertEqual(row["rank_read"], "?")
         self.assertTrue(row["captured_at"])
 
+    def test_status_counts_per_run(self):
+        """FR-08 실행 요약의 실패 사유 집계(parse_status별 건수)."""
+        run = self.store.create_run()
+        for rank, status in ((1, "ok"), (2, "partial"), (3, "partial"), (4, "failed")):
+            self.store.upsert_row(run, _row(rank, parse_status=status))
+        self.assertEqual(self.store.status_counts(run), {"ok": 1, "partial": 2, "failed": 1})
+        self.assertEqual(self.store.status_counts(self.store.create_run()), {})
+
 
 class IdentityTest(StoreTestCase):
     def test_identity_lifecycle(self):
@@ -111,6 +129,14 @@ class IdentityTest(StoreTestCase):
         self.store.confirm_label(uid, "확정")
         after = list(self.store.export_rows(run))[0]
         self.assertEqual((after["user_label"], after["user_status"]), ("확정", "confirmed"))
+
+    def test_pending_filtered_by_namespace(self):
+        """label --namespace: 지정 네임스페이스의 pending만 순회한다."""
+        self.store.create_identity("user", None, "user/u1.png")
+        aid = self.store.create_identity("alliance", None, "alliance/a1.png")
+        self.assertEqual([r["identity_id"] for r in self.store.pending_identities("alliance")],
+                         [aid])
+        self.assertEqual(len(self.store.pending_identities()), 2)
 
 
 if __name__ == "__main__":

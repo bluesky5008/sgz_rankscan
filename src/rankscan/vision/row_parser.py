@@ -52,6 +52,17 @@ class RowParser:
                                          suggest)
         self.digits = RankDigitReader()
 
+    def read_rank(self, frame: np.ndarray, top: int) -> str:
+        """행 상단 top의 순위 셀 판독(DES-08). 예외는 '?'(판독 실패)로 격리한다.
+
+        walk의 시작 조건 판정(DES-04 1)이 셀 하나만 읽을 때도 이 메서드를 쓴다.
+        """
+        try:
+            return self.digits.read_rank(_cell(frame, top, ui.CELL_RANK))
+        except Exception:
+            log.exception("행(top %d) 순위 셀 판독 예외", top)
+            return "?"
+
     def parse(self, frame: np.ndarray, top: int, rank: int) -> RankRow:
         failed: list[str] = []
 
@@ -70,11 +81,7 @@ class RowParser:
         user_id, user_score = ident(self.users, ui.CELL_NAME, "user")
         region_id, region_score = ident(self.regions, ui.CELL_REGION, "region")
         alliance_id, alliance_score = ident(self.alliances, ui.CELL_ALLIANCE, "alliance")
-        try:
-            rank_read = self.digits.read_rank(_cell(frame, top, ui.CELL_RANK))
-        except Exception:
-            log.exception("%d위 순위 셀 판독 예외", rank)
-            rank_read = "?"
+        rank_read = self.read_rank(frame, top)
         if not rank_read or "?" in rank_read:
             failed.append("rank")
 

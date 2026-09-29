@@ -2,6 +2,7 @@
 #       원류 map_search mapscan/store/datastore.py). 변경점: 스키마를 설계 DES-09로 교체
 #       (runs에 max_rank·note 추가, battles·deck_slots → rank_rows), battle_key·대체 키·
 #       add_template·덱 통계 조회 제거, RankRow·upsert_row·ranks_of·export_rows 추가.
+#       2026-09-30(TASK-07): latest_run_id·status_counts 추가, pending_identities 네임스페이스 필터.
 """SQLite 수집 원장 (설계 DES-09).
 
 `rank_rows`의 기본키 `(run_id, rank)`가 FR-06의 "같은 run 안 같은 순위 1건"을 구조적으로
@@ -114,6 +115,10 @@ class DataStore:
         return self._conn.execute(
             "SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone()
 
+    def latest_run_id(self) -> int | None:
+        """가장 최근 run(export --run 생략 시 대상, DES-10). run이 없으면 None."""
+        return self._conn.execute("SELECT MAX(run_id) FROM runs").fetchone()[0]
+
     def finish_run(self, run_id: int, status: str = "done", *,
                    processed: int = 0, saved: int = 0, failed: int = 0,
                    note: str | None = None) -> None:
@@ -143,10 +148,13 @@ class DataStore:
             " WHERE identity_id=?", (label, identity_id))
         self._conn.commit()
 
-    def pending_identities(self) -> list[sqlite3.Row]:
-        return self._conn.execute(
-            "SELECT * FROM identities WHERE label_status='pending'"
-            " ORDER BY identity_id").fetchall()
+    def pending_identities(self, namespace: str | None = None) -> list[sqlite3.Row]:
+        """라벨 미확정 식별자(ID순). namespace를 주면 그 네임스페이스만(label --namespace)."""
+        sql = "SELECT * FROM identities WHERE label_status='pending'"
+        args: tuple = ()
+        if namespace is not None:
+            sql, args = sql + " AND namespace=?", (namespace,)
+        return self._conn.execute(sql + " ORDER BY identity_id", args).fetchall()
 
     def iter_identities(self, namespace: str):
         yield from self._conn.execute(
@@ -176,6 +184,12 @@ class DataStore:
         """run에 저장된 순위 집합(오름차순) — 결측·중복 검사용(AC-03)."""
         return [r[0] for r in self._conn.execute(
             "SELECT rank FROM rank_rows WHERE run_id=? ORDER BY rank", (run_id,))]
+
+    def status_counts(self, run_id: int) -> dict[str, int]:
+        """run의 parse_status별 행 수 — 실행 요약의 인식 실패 사유 집계(FR-08)."""
+        return {r[0]: r[1] for r in self._conn.execute(
+            "SELECT parse_status, COUNT(*) FROM rank_rows WHERE run_id=?"
+            " GROUP BY parse_status", (run_id,))}
 
     def export_rows(self, run_id: int):
         """내보내기용 행 (순위순, 세력명·지역·동맹의 라벨과 확정 상태 조인)."""
